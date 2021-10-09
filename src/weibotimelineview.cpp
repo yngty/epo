@@ -17,5 +17,5 @@ void WeiboTimelineView::initialize()
 
     setModel(model);
     setItemDelegate(delegate);
-
+    setWordWrap(true);
 }

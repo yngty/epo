@@ -3,11 +3,14 @@
 #include "weibotimelinemodel.h"
 
 #include <QPainter>
+#include <QTextLayout>
 #include <QGuiApplication>
 #include <QDebug>
+#include <QMap>
 
 #include <cmath>
 
+QMap<int, int> heights;
 WeiboTimelineDelegate::WeiboTimelineDelegate(QObject *parent) : QStyledItemDelegate (parent)
 {
     par = qobject_cast<WeiboTimelineView*>(parent);
@@ -17,38 +20,76 @@ void WeiboTimelineDelegate::paint(QPainter *painter, const QStyleOptionViewItem 
 {
     painter->setRenderHint(QPainter::RenderHint::Antialiasing);
 
-    const QIcon icon = index.data(WeiboTimelineModel::IconNameRole).value<QIcon>();
-    const int iconsize = par->iconSize().width();
     const int edgeMargin = 10;
-    const int topMargin = 10;
-    painter->drawPixmap(option.rect.x() + edgeMargin, option.rect.y() + topMargin, icon.pixmap(iconsize));
+    const int iconWidth = par->iconSize().width();
+    const int rectWidth = option.rect.width();
 
-    QString name = index.data(Qt::DisplayRole).toString();
+    const QIcon icon = index.data(WeiboTimelineModel::IconNameRole).value<QIcon>();
+    const QRect iconRect(edgeMargin,option.rect.top() + edgeMargin, iconWidth, iconWidth);
+    painter->drawPixmap(iconRect, icon.pixmap(iconRect.size()));
 
-    QRect nameLabelRect = option.rect;
-
-    const int nameLeft= iconsize + edgeMargin + edgeMargin;
-
-    nameLabelRect.setLeft(nameLeft);
-    nameLabelRect.setTop(topMargin);
-    nameLabelRect.setWidth(option.rect.width() - nameLeft - edgeMargin);
-    nameLabelRect.setHeight(par->fontMetrics().height());
+    const QString name = index.data(Qt::DisplayRole).toString();
+    const int nameLabelLeft = edgeMargin * 2 + iconWidth;
+    QRect nameLabelRect(nameLabelLeft, option.rect.top() +  edgeMargin, rectWidth - nameLabelLeft - edgeMargin, option.fontMetrics.height());
 
     painter->drawText(nameLabelRect, Qt::TextWrapAnywhere, name);
-    painter->drawRect(nameLabelRect);
 
-    QString content = index.data(WeiboTimelineModel::ContentRole).toString();
+    const QString content = index.data(WeiboTimelineModel::ContentRole).toString();
+    qreal height = 0;
+    if (heights.contains(index.row())) {
+        height = heights[index.row()];
+    } else {
+        QTextLayout textLayout(content);
+        textLayout.beginLayout();
+        while (true) {
+            QTextLine line = textLayout.createLine();
+            if (!line.isValid())
+                break;
+
+            line.setLineWidth(option.rect.width() - edgeMargin * 2 - iconWidth);
+            line.setPosition(QPointF(0, height));
+            height += line.height();
+
+        }
+        textLayout.endLayout();
+        heights.insert(index.row(), static_cast<int>(height));
+    }
+
 
     QRect contentLabelRect = nameLabelRect;
-    contentLabelRect.setTop(nameLabelRect.bottom() + topMargin);
-    contentLabelRect.setBottom(option.rect.bottom());
-
+    contentLabelRect.setTop(nameLabelRect.bottom());
+    contentLabelRect.setHeight(static_cast<int>(height));
     painter->drawText(contentLabelRect, Qt::TextWrapAnywhere, content);
-    painter->drawRect(contentLabelRect);
-
 }
 
 QSize WeiboTimelineDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    return QSize(400, 400);
+
+    const int edgeMargin = 10;
+    const int iconWidth = par->iconSize().width();
+
+    const QString content = index.data(WeiboTimelineModel::ContentRole).toString();
+    qreal height = 0;
+    if (heights.contains(index.row())) {
+        height = heights[index.row()];
+    } else {
+        QTextLayout textLayout(content);
+        textLayout.beginLayout();
+        while (true) {
+            QTextLine line = textLayout.createLine();
+            if (!line.isValid())
+                break;
+
+            line.setLineWidth(option.rect.width() - edgeMargin * 2 - iconWidth);
+            line.setPosition(QPointF(0, height));
+            height += line.height();
+
+        }
+        textLayout.endLayout();
+        heights.insert(index.row(), static_cast<int>(height));
+    }
+
+    QSize size(option.rect.width(), edgeMargin + option.fontMetrics.height() + static_cast<int>(height));
+
+    return size;
 }
