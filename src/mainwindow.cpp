@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "weibotimelineview.h"
+#include "oauthdialog.h"
 
 #include <QVBoxLayout>
 
@@ -14,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::initUI()
 {
     setFixedSize(500, 500);
-
     setCentralWidget(timelineView);
+
+    OauthDialog dialog;
+    dialog.exec();
 }
