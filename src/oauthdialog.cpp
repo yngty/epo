@@ -1,17 +1,14 @@
 #include "oauthdialog.h"
+#include "networkmanager.h"
+
 #include <QWebView>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonValue>
+#include <QJsonArray>
 
-const QString OauthDialog::WeiboApiUrl = "https://api.weibo.com";
-const QString OauthDialog::AppKey = "492334311";
-const QString OauthDialog::AppSecret = "558ace4cf259ef93e473427cdb19652a";
-const QString OauthDialog::RedirectUrl = "https://api.weibo.com/oauth2/default.html";
-const QString OauthDialog::OauthGetCodeUrl = WeiboApiUrl + "/oauth2/authorize?client_id=" +
-    AppKey + "&redirect_uri=" + RedirectUrl + "&response_type=code";
-
-QString OauthDialog::AccessToken = "";
-QString OauthDialog::ExpiresIn = "0";
 
 OauthDialog::OauthDialog(QDialog *parent)
     : QDialog(parent),
@@ -30,7 +27,7 @@ void OauthDialog::initUI()
 
 void OauthDialog::loadUrl()
 {
-    QUrl url(OauthGetCodeUrl);
+    QUrl url(NetworkManager::OauthGetCodeUrl);
     webView->load(url);
     connect(webView, &QWebView::urlChanged, this, &OauthDialog::onRedirected);
 }
@@ -42,6 +39,35 @@ void OauthDialog::onRedirected(const QUrl & url)
    if (strUrl.contains("code=")) {
        QString code = strUrl.mid(strUrl.lastIndexOf("=") + 1);
        qInfo() << code;
+
+       QMap<QString, QString> params;
+       params["client_id"] = NetworkManager::AppKey;
+       params["client_secret"] = NetworkManager::AppSecret;
+       params["grant_type"] = "authorization_code";
+       params["code"] = code;
+       params["redirect_uri"] = NetworkManager::RedirectUrl;
+       QByteArray response = NetworkManager::instance().post(NetworkManager::OauthGetAccessTokenUrl, params);
+       if(!response.isEmpty())
+       {
+           QJsonParseError jsonError;
+           QJsonDocument parseDoc = QJsonDocument::fromJson(response, &jsonError);  // 转化为 JSON 文档
+           if (!parseDoc.isNull() && (jsonError.error == QJsonParseError::NoError)) {  // 解析未发生错误
+               /// JSON 文档为对象
+               if (parseDoc.isObject()) {
+                   QJsonObject object = parseDoc.object();
+                   if (object.contains("access_token")) {
+                       QJsonValue value = object.value("access_token");
+                       if (value.isString()) {
+                           NetworkManager::AccessToken = value.toString();
+                           qInfo() << "AccessToken: " << NetworkManager::AccessToken;
+                       }
+                   }
+               }
+           }
+       }
+       webView->hide();
+       this->close();
    }
-   webView->hide();
+
+
 }

@@ -1,31 +1,29 @@
 #ifndef WEIBOTIMELINE_H
 #define WEIBOTIMELINE_H
-#include <QString>
 
-struct WeiboTimeLine
+#include "user.h"
+
+
+
+class WeiboTimeLine
 {
-    QString icon;
-    QString name;
-    QString content;
 
-    WeiboTimeLine() {}
-    WeiboTimeLine(QString icon= "", QString name = "", QString content = "")
-        :icon(icon)
-        ,name(name)
-        ,content(content) {}
+public:
+    WeiboTimeLine() = default;
+    WeiboTimeLine(long long idArg, const User userArg, const QString textArg = "")
+        :id(idArg)
+        ,user(userArg)
+        ,text(textArg) {}
+
     bool operator==(const WeiboTimeLine &other) const
     {
-        return icon == other.icon && name == other.name;
+        return id == other.id;
     }
+public:
+    long long id;
+    User user;
+    QString text;
 };
 
-inline QDataStream &operator<<(QDataStream &stream, const WeiboTimeLine &timeline) {
-    return stream << timeline.name << timeline.content;
-}
-
-inline QDataStream &operator>>(QDataStream &stream, WeiboTimeLine &timeline)
-{
-    return stream >> timeline.icon >> timeline.name >> timeline.content;
-}
 
 #endif // WEIBOTIMELINE_H

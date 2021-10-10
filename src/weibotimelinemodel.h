@@ -19,13 +19,15 @@ public:
     explicit WeiboTimelineModel(QObject *parent = nullptr);
     explicit WeiboTimelineModel(QList<std::shared_ptr<WeiboTimeLine>> messages, QObject *parent = nullptr);
 
-    QList<std::shared_ptr<WeiboTimeLine>> getMessages() const;
+    QList<std::shared_ptr<WeiboTimeLine>> getStatuses() const;
+
+    void addStatus(const std::shared_ptr<WeiboTimeLine> &status);
     // QAbstractItemModel interface
 public:
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
     virtual QVariant data(const QModelIndex &index, int role) const;
 
 private:
-    QList<std::shared_ptr<WeiboTimeLine>> messages;
+    QList<std::shared_ptr<WeiboTimeLine>> statuses;
 };
 #endif // WEIBOTIMELINEMODEL_H
